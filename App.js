@@ -1,85 +1,140 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-const supabase = createClient(
-  'https://nsbuezwakcyxgvrwiela.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zYnVlendha2N5eGd2cndpZWxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTcwMjUsImV4cCI6MjA3MDEzMzAyNX0.L33UWCIRi5CS1cenMfw6EYOzrGg2k_OK8wVukEE4WLI'
-);
+const supabaseUrl = 'https://nsbuezwakcyxgvrwiela.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zYnVlendha2N5eGd2cndpZWxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTcwMjUsImV4cCI6MjA3MDEzMzAyNX0.L33UWCIRi5CS1cenMfw6EYOzrGg2k_OK8wVukEE4WLI'; // Replace this with your real anon key
+const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Elements
+const loginView = document.getElementById('loginView');
+const dashboardView = document.getElementById('dashboardView');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const emailInput = document.getElementById('email');
+const passwordInput = document.getElementById('password');
+const loginError = document.getElementById('loginError');
 const userList = document.getElementById('userList');
 const chatWindow = document.getElementById('chatWindow');
-const chatHeader = document.getElementById('chatHeader');
-let selectedUserId = null;
+const msgInput = document.getElementById('msgInput');
+const chatUsername = document.getElementById('chatUsername');
+const chatUserImage = document.getElementById('chatUserImage');
 
-async function loadUsers() {
-  const { data, error } = await supabase
-    .from('support_messages')
-    .select('user_id')
-    .neq('sender', 'agent')
-    .group('user_id');
+let currentUserId = null;
+
+// Auth check
+const checkAuth = async () => {
+  const { data } = await supabase.auth.getSession();
+  if (data.session) {
+    showDashboard();
+  } else {
+    showLogin();
+  }
+};
+
+loginBtn.addEventListener('click', async () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    console.error(error);
-    return;
+    loginError.textContent = 'Invalid credentials';
+    loginError.classList.remove('hidden');
+  } else {
+    loginError.classList.add('hidden');
+    showDashboard();
   }
+});
+
+logoutBtn.addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  showLogin();
+});
+
+function showLogin() {
+  loginView.classList.remove('hidden');
+  dashboardView.classList.add('hidden');
+}
+
+function showDashboard() {
+  loginView.classList.add('hidden');
+  dashboardView.classList.remove('hidden');
+  loadUsers();
+}
+
+async function loadUsers() {
+  const { data: users } = await supabase.from('support_messages').select('user_id, sender').neq('sender', 'admin');
+  const uniqueUserIds = [...new Set(users.map(u => u.user_id))];
 
   userList.innerHTML = '';
-  data.forEach(({ user_id }) => {
-    const btn = document.createElement('button');
-    btn.className = 'w-full p-2 text-left bg-gray-100 rounded hover:bg-gray-200';
-    btn.innerText = user_id;
-    btn.onclick = () => selectUser(user_id);
-    userList.appendChild(btn);
-  });
+  for (const userId of uniqueUserIds) {
+    const { data: userMeta } = await supabase
+      .storage
+      .from('avatars')
+      .getPublicUrl(`${userId}.jpg`);
+
+    const avatar = userMeta?.publicUrl || 'https://via.placeholder.com/40';
+    const div = document.createElement('div');
+    div.className = 'flex items-center space-x-3 p-2 hover:bg-gray-100 cursor-pointer rounded';
+    div.innerHTML = `
+      <img src="${avatar}" class="w-8 h-8 rounded-full" />
+      <span class="text-sm font-medium">${userId.slice(0, 10)}...</span>
+    `;
+    div.onclick = () => loadChat(userId, avatar);
+    userList.appendChild(div);
+  }
 }
 
-async function selectUser(userId) {
-  selectedUserId = userId;
-  chatHeader.innerText = `Chat with: ${userId}`;
-  await renderChat();
+async function loadChat(userId, avatar) {
+  currentUserId = userId;
+  chatUsername.textContent = `Chat with ${userId.slice(0, 10)}...`;
+  chatUserImage.src = avatar;
+  chatUserImage.classList.remove('hidden');
+  await displayMessages();
+
+  supabase.channel(`chat:${userId}`)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'support_messages',
+      filter: `user_id=eq.${userId}`
+    }, payload => {
+      displayMessages();
+    })
+    .subscribe();
 }
 
-async function renderChat() {
-  if (!selectedUserId) return;
-
+async function displayMessages() {
   const { data } = await supabase
     .from('support_messages')
     .select('*')
-    .eq('user_id', selectedUserId)
+    .eq('user_id', currentUserId)
     .order('created_at', { ascending: true });
 
   chatWindow.innerHTML = '';
-  data.forEach((m) => {
-    const div = document.createElement('div');
-    const bubbleClass = m.sender === 'agent'
-      ? 'bg-blue-100 text-right'
-      : 'bg-gray-200 text-left';
-    div.className = `mb-2 p-2 rounded max-w-xs ${bubbleClass}`;
-    div.innerText = m.message;
-    chatWindow.append(div);
+  data.forEach(msg => {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `my-2 p-3 rounded max-w-[70%] ${
+      msg.sender === 'admin' ? 'bg-blue-100 self-end ml-auto' : 'bg-gray-200'
+    }`;
+    msgDiv.innerHTML = `
+      <div class="text-sm">${msg.message}</div>
+      <div class="text-[10px] text-right mt-1 text-gray-500">${new Date(msg.created_at).toLocaleTimeString()}</div>
+    `;
+    chatWindow.appendChild(msgDiv);
   });
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
-window.sendMessage = async function () {
-  const input = document.getElementById('msgInput');
-  const msg = input.value.trim();
-  if (!msg || !selectedUserId) return;
+window.sendMessage = async () => {
+  const message = msgInput.value.trim();
+  if (!message || !currentUserId) return;
 
-  await supabase.from('support_messages').insert([
-    { user_id: selectedUserId, sender: 'agent', message: msg }
-  ]);
-
-  input.value = '';
-};
-
-supabase
-  .channel('support-chat')
-  .on('postgres_changes', { event: 'INSERT', table: 'support_messages', schema: 'public' }, async (payload) => {
-    if (payload.new.user_id === selectedUserId) {
-      await renderChat();
+  const { error } = await supabase.from('support_messages').insert([
+    {
+      user_id: currentUserId,
+      message,
+      sender: 'admin'
     }
-    await loadUsers();
-  })
-  .subscribe();
-
-loadUsers();
+  ]);
+  msgInput.value = '';
+};
+checkAuth();
