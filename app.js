@@ -328,35 +328,60 @@ function renderMessagesChart(messages) {
 }
 
 let usersChart = null;
-function renderUsersChart(messagesByUser) {
-  const usersSorted = Object.entries(messagesByUser)
-    .sort((a,b) => b[1].length - a[1].length)
-    .slice(0,7);
+function renderMessagesChart(messages) {
+  const dayLabels = [];
+  const dayCounts = [];
 
-  const labels = usersSorted.map(([userId]) => userId.slice(0,10));
-  const data = usersSorted.map(([,msgs]) => msgs.length);
+  // Prepare date range (last 14 days)
+  const now = new Date();
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    dayLabels.push(d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+    dayCounts.push(0);
+  }
 
-  if(usersChart) usersChart.destroy();
-  const ctx = document.getElementById('usersChart').getContext('2d');
-  usersChart = new Chart(ctx, {
-    type: 'bar',
+  // Count messages per day
+  messages.forEach((msg) => {
+    const msgDate = new Date(msg.created_at);
+    const label = msgDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const index = dayLabels.indexOf(label);
+    if (index >= 0) dayCounts[index]++;
+  });
+
+  // Destroy previous chart if exists
+  if (typeof messagesChart !== 'undefined' && messagesChart) {
+    messagesChart.destroy();
+  }
+
+  const ctx = document.getElementById('messagesChart').getContext('2d');
+  messagesChart = new Chart(ctx, {
+    type: 'line',
     data: {
-      labels,
+      labels: dayLabels,
       datasets: [{
-        label: 'Messages Count',
-        data,
-        backgroundColor: 'rgba(34, 197, 94, 0.7)',
-        borderColor: 'rgba(34, 197, 94, 1)',
-        borderWidth: 1,
-      }]
+        label: 'Messages',
+        data: dayCounts,
+        fill: true,
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+        borderColor: 'rgba(59, 130, 246, 1)',
+        borderWidth: 2,
+        pointRadius: 3,
+        tension: 0.3,
+      }],
     },
     options: {
       responsive: true,
-      plugins: {legend: {display:false}},
-      scales: { y: {beginAtZero:true, precision:0} },
-    }
+      plugins: {
+        legend: { display: true },
+      },
+      scales: {
+        y: { beginAtZero: true, precision: 0 },
+      },
+    },
   });
 }
+
 
 // ===== NAV TABS =====
 tabOverview.addEventListener('click', () => {
