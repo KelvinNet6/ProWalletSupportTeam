@@ -19,7 +19,7 @@ const chatUsername = document.getElementById('chatUsername');
 const chatUserImage = document.getElementById('chatUserImage');
 
 let currentUserId = null;
-const allowedAdminEmail = "admin@prowallet.com"; // Your whitelisted admin email
+const allowedAdminEmail = "kelvin.net6@gmail.com"; // Your whitelisted admin email
 
 // Check auth on page load
 checkAuth();
