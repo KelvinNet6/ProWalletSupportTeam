@@ -284,7 +284,6 @@ async function loadDashboard() {
 }
 
 // ===== CHARTS =====
-let messagesChart = null;
 function renderMessagesChart(messages) {
   const dayLabels = [];
   const dayCounts = [];
