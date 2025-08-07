@@ -287,50 +287,7 @@ async function loadDashboard() {
 function renderMessagesChart(messages) {
   const dayLabels = [];
   const dayCounts = [];
-  const now = new Date();
-  for(let i=13; i>=0; i--) {
-    const d = new Date(now);
-    d.setDate(now.getDate() - i);
-    dayLabels.push(d.toLocaleDateString(undefined, {month:'short', day:'numeric'}));
-    dayCounts.push(0);
-  }
-  messages.forEach(msg => {
-    const msgDate = new Date(msg.created_at);
-    const label = msgDate.toLocaleDateString(undefined, {month:'short', day:'numeric'});
-    const idx = dayLabels.indexOf(label);
-    if (idx >= 0) dayCounts[idx]++;
-  });
 
-  if(messagesChart) messagesChart.destroy();
-  const ctx = document.getElementById('messagesChart').getContext('2d');
-  messagesChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: dayLabels,
-      datasets: [{
-        label: 'Messages',
-        data: dayCounts,
-        fill: true,
-        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-        borderColor: 'rgba(59, 130, 246, 1)',
-        borderWidth: 2,
-        pointRadius: 3,
-        tension: 0.3,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {legend: {display:true}},
-      scales: { y: {beginAtZero:true, precision:0} },
-    }
-  });
-}
-
-function renderMessagesChart(messages) {
-  const dayLabels = [];
-  const dayCounts = [];
-
-  // Prepare date range (last 14 days)
   const now = new Date();
   for (let i = 13; i >= 0; i--) {
     const d = new Date(now);
@@ -339,7 +296,6 @@ function renderMessagesChart(messages) {
     dayCounts.push(0);
   }
 
-  // Count messages per day
   messages.forEach((msg) => {
     const msgDate = new Date(msg.created_at);
     const label = msgDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -347,7 +303,6 @@ function renderMessagesChart(messages) {
     if (index >= 0) dayCounts[index]++;
   });
 
-  // Destroy previous chart if exists
   if (typeof messagesChart !== 'undefined' && messagesChart) {
     messagesChart.destroy();
   }
