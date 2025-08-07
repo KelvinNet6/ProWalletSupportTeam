@@ -37,7 +37,7 @@ let messagesChart, usersChart;
 let currentUserId = null;
 let chatSubscription = null;
 
-const ALLOWED_ADMIN_EMAIL = 'admin@prowallet.com'; // Your allowed admin email whitelist
+const ALLOWED_ADMIN_EMAIL = 'kelvin.net6@gmail.com'; // Your allowed admin email whitelist
 
 // ===== AUTH =====
 async function checkAuth() {
