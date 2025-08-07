@@ -1,10 +1,10 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
 const supabaseUrl = 'https://nsbuezwakcyxgvrwiela.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zYnVlendha2N5eGd2cndpZWxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTcwMjUsImV4cCI6MjA3MDEzMzAyNX0.L33UWCIRi5CS1cenMfw6EYOzrGg2k_OK8wVukEE4WLI'; // Replace this with your real anon key
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zYnVlendha2N5eGd2cndpZWxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTcwMjUsImV4cCI6MjA3MDEzMzAyNX0.L33UWCIRi5CS1cenMfw6EYOzrGg2k_OK8wVukEE4WLI'; // Use real anon key (from Supabase project)
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Elements
+// UI elements
 const loginView = document.getElementById('loginView');
 const dashboardView = document.getElementById('dashboardView');
 const loginBtn = document.getElementById('loginBtn');
@@ -19,39 +19,25 @@ const chatUsername = document.getElementById('chatUsername');
 const chatUserImage = document.getElementById('chatUserImage');
 
 let currentUserId = null;
+const allowedAdminEmail = "admin@prowallet.com"; // Your whitelisted admin email
 
-// Auth check
-const checkAuth = async () => {
-  const { data } = await supabase.auth.getSession();
- if (data.session) {
-  const user = data.session.user;
-  const allowedAdminEmail = "kelvin.net6gmail.com"; // change this to your admin email
+// Check auth on page load
+checkAuth();
 
-  if (user.email === allowedAdminEmail) {
-    showDashboard();
-  } else {
-    alert("Access denied: not an authorized admin.");
-    await supabase.auth.signOut();
-    showLogin();
-  }
-}
-
-};
-
+// LOGIN
 loginBtn.addEventListener('click', async () => {
   const email = emailInput.value.trim();
   const password = passwordInput.value.trim();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error || !data.session) {
     loginError.textContent = 'Invalid credentials';
     loginError.classList.remove('hidden');
-  } } else {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const user = sessionData.session.user;
-  const allowedAdminEmail = "admin@prowallet.com"; // update this
+    return;
+  }
 
-  if (user.email === allowedAdminEmail) {
+  if (data.session.user.email === allowedAdminEmail) {
     loginError.classList.add('hidden');
     showDashboard();
   } else {
@@ -59,37 +45,55 @@ loginBtn.addEventListener('click', async () => {
     await supabase.auth.signOut();
     showLogin();
   }
-}
 });
 
+// LOGOUT
 logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut();
   showLogin();
 });
 
+// Show Login
 function showLogin() {
   loginView.classList.remove('hidden');
   dashboardView.classList.add('hidden');
 }
 
+// Show Dashboard
 function showDashboard() {
   loginView.classList.add('hidden');
   dashboardView.classList.remove('hidden');
   loadUsers();
 }
 
+// Check current session
+async function checkAuth() {
+  const { data } = await supabase.auth.getSession();
+  const session = data?.session;
+
+  if (session?.user?.email === allowedAdminEmail) {
+    showDashboard();
+  } else {
+    showLogin();
+  }
+}
+
+// Load user list from support_messages
 async function loadUsers() {
-  const { data: users } = await supabase.from('support_messages').select('user_id, sender').neq('sender', 'admin');
+  const { data: users } = await supabase
+    .from('support_messages')
+    .select('user_id, sender')
+    .neq('sender', 'admin');
+
   const uniqueUserIds = [...new Set(users.map(u => u.user_id))];
 
   userList.innerHTML = '';
   for (const userId of uniqueUserIds) {
-    const { data: userMeta } = await supabase
-      .storage
+    const { data: avatarData } = supabase.storage
       .from('avatars')
       .getPublicUrl(`${userId}.jpg`);
+    const avatar = avatarData?.publicUrl || 'https://via.placeholder.com/40';
 
-    const avatar = userMeta?.publicUrl || 'https://via.placeholder.com/40';
     const div = document.createElement('div');
     div.className = 'flex items-center space-x-3 p-2 hover:bg-gray-100 cursor-pointer rounded';
     div.innerHTML = `
@@ -101,11 +105,13 @@ async function loadUsers() {
   }
 }
 
+// Load chat messages
 async function loadChat(userId, avatar) {
   currentUserId = userId;
   chatUsername.textContent = `Chat with ${userId.slice(0, 10)}...`;
   chatUserImage.src = avatar;
   chatUserImage.classList.remove('hidden');
+
   await displayMessages();
 
   supabase.channel(`chat:${userId}`)
@@ -120,6 +126,7 @@ async function loadChat(userId, avatar) {
     .subscribe();
 }
 
+// Display messages
 async function displayMessages() {
   const { data } = await supabase
     .from('support_messages')
@@ -129,24 +136,26 @@ async function displayMessages() {
 
   chatWindow.innerHTML = '';
   data.forEach(msg => {
-    const msgDiv = document.createElement('div');
-    msgDiv.className = `my-2 p-3 rounded max-w-[70%] ${
+    const div = document.createElement('div');
+    div.className = `my-2 p-3 rounded max-w-[70%] ${
       msg.sender === 'admin' ? 'bg-blue-100 self-end ml-auto' : 'bg-gray-200'
     }`;
-    msgDiv.innerHTML = `
+    div.innerHTML = `
       <div class="text-sm">${msg.message}</div>
       <div class="text-[10px] text-right mt-1 text-gray-500">${new Date(msg.created_at).toLocaleTimeString()}</div>
     `;
-    chatWindow.appendChild(msgDiv);
+    chatWindow.appendChild(div);
   });
+
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
+// Send message
 window.sendMessage = async () => {
   const message = msgInput.value.trim();
   if (!message || !currentUserId) return;
 
-  const { error } = await supabase.from('support_messages').insert([
+  await supabase.from('support_messages').insert([
     {
       user_id: currentUserId,
       message,
@@ -155,4 +164,3 @@ window.sendMessage = async () => {
   ]);
   msgInput.value = '';
 };
-checkAuth();
