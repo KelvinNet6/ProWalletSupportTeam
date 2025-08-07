@@ -5,10 +5,10 @@ const supabase = createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zYnVlendha2N5eGd2cndpZWxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTcwMjUsImV4cCI6MjA3MDEzMzAyNX0.L33UWCIRi5CS1cenMfw6EYOzrGg2k_OK8wVukEE4WLI'
 );
 
-let selectedUserId = null;
-
 const userList = document.getElementById('userList');
 const chatWindow = document.getElementById('chatWindow');
+const chatHeader = document.getElementById('chatHeader');
+let selectedUserId = null;
 
 async function loadUsers() {
   const { data, error } = await supabase
@@ -17,37 +17,45 @@ async function loadUsers() {
     .neq('sender', 'agent')
     .group('user_id');
 
+  if (error) {
+    console.error(error);
+    return;
+  }
+
   userList.innerHTML = '';
-  data?.forEach((u) => {
+  data.forEach(({ user_id }) => {
     const btn = document.createElement('button');
-    btn.className = 'w-full text-left p-2 bg-gray-100 rounded hover:bg-gray-200';
-    btn.innerText = u.user_id;
-    btn.onclick = () => loadChat(u.user_id);
+    btn.className = 'w-full p-2 text-left bg-gray-100 rounded hover:bg-gray-200';
+    btn.innerText = user_id;
+    btn.onclick = () => selectUser(user_id);
     userList.appendChild(btn);
   });
 }
 
-async function loadChat(userId) {
+async function selectUser(userId) {
   selectedUserId = userId;
-
-  const { data, error } = await supabase
-    .from('support_messages')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: true });
-
-  renderChat(data || []);
+  chatHeader.innerText = `Chat with: ${userId}`;
+  await renderChat();
 }
 
-function renderChat(messages) {
+async function renderChat() {
+  if (!selectedUserId) return;
+
+  const { data } = await supabase
+    .from('support_messages')
+    .select('*')
+    .eq('user_id', selectedUserId)
+    .order('created_at', { ascending: true });
+
   chatWindow.innerHTML = '';
-  messages.forEach((msg) => {
-    const align = msg.sender === 'agent' ? 'text-right' : 'text-left';
-    const bg = msg.sender === 'agent' ? 'bg-blue-100' : 'bg-gray-200';
-    const bubble = document.createElement('div');
-    bubble.className = `${align} mb-2`;
-    bubble.innerHTML = `<div class="inline-block ${bg} px-4 py-2 rounded">${msg.message}</div>`;
-    chatWindow.appendChild(bubble);
+  data.forEach((m) => {
+    const div = document.createElement('div');
+    const bubbleClass = m.sender === 'agent'
+      ? 'bg-blue-100 text-right'
+      : 'bg-gray-200 text-left';
+    div.className = `mb-2 p-2 rounded max-w-xs ${bubbleClass}`;
+    div.innerText = m.message;
+    chatWindow.append(div);
   });
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
@@ -62,17 +70,15 @@ window.sendMessage = async function () {
   ]);
 
   input.value = '';
-  loadChat(selectedUserId);
 };
 
-// Real-time listener
 supabase
-  .channel('support_chat')
-  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (payload) => {
+  .channel('support-chat')
+  .on('postgres_changes', { event: 'INSERT', table: 'support_messages', schema: 'public' }, async (payload) => {
     if (payload.new.user_id === selectedUserId) {
-      loadChat(selectedUserId);
+      await renderChat();
     }
-    loadUsers();
+    await loadUsers();
   })
   .subscribe();
 
