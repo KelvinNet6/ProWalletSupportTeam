@@ -164,3 +164,24 @@ window.sendMessage = async () => {
   ]);
   msgInput.value = '';
 };
+
+const overviewBtn = document.getElementById('overviewBtn');
+const chatBtn = document.getElementById('chatBtn');
+const overviewContainer = document.getElementById('overviewContainer');
+const chatContainer = document.getElementById('chatContainer');
+
+overviewBtn.addEventListener('click', () => {
+  overviewBtn.classList.add('text-blue-600', 'font-semibold', 'border-b-2', 'border-blue-600');
+  chatBtn.classList.remove('text-blue-600', 'font-semibold', 'border-b-2', 'border-blue-600');
+  
+  overviewContainer.classList.remove('hidden');
+  chatContainer.classList.add('hidden');
+});
+
+chatBtn.addEventListener('click', () => {
+  chatBtn.classList.add('text-blue-600', 'font-semibold', 'border-b-2', 'border-blue-600');
+  overviewBtn.classList.remove('text-blue-600', 'font-semibold', 'border-b-2', 'border-blue-600');
+  
+  chatContainer.classList.remove('hidden');
+  overviewContainer.classList.add('hidden');
+});
