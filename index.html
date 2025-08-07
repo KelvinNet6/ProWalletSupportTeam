@@ -24,7 +24,15 @@
     <div id="dashboardView" class="hidden flex h-screen">
       <!-- Sidebar -->
       <aside class="w-72 bg-white shadow-lg p-4">
-        <main class="flex-1 flex flex-col p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold">💬 Support Agents</h2>
+          <button id="logoutBtn" class="text-red-500 hover:underline text-sm">Logout</button>
+        </div>
+        <div id="userList" class="space-y-3 overflow-y-auto h-[80vh] pr-2"></div>
+      </aside>
+
+      <!-- Chat Area -->
+<main class="flex-1 flex flex-col p-6">
   <!-- Top Navigation -->
   <nav class="flex space-x-6 mb-6 border-b border-gray-300 pb-3">
     <button id="overviewBtn" class="text-gray-600 hover:text-blue-600 font-semibold focus:outline-none">
@@ -35,29 +43,30 @@
     </button>
   </nav>
 
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-bold">💬 Support Agents</h2>
-          <button id="logoutBtn" class="text-red-500 hover:underline text-sm">Logout</button>
-        </div>
-        <div id="userList" class="space-y-3 overflow-y-auto h-[80vh] pr-2"></div>
-      </aside>
+  <!-- User Info -->
+  <div class="flex items-center mb-4">
+    <img id="chatUserImage" class="w-10 h-10 rounded-full mr-3 hidden" />
+    <h3 id="chatUsername" class="text-xl font-semibold">Select a user</h3>
+  </div>
 
-      <!-- Chat Area -->
-      <main class="flex-1 p-6 flex flex-col">
-        <div class="flex items-center mb-4">
-          <img id="chatUserImage" class="w-10 h-10 rounded-full mr-3 hidden" />
-          <h3 id="chatUsername" class="text-xl font-semibold">Select a user</h3>
-        </div>
+  <!-- Chat Window -->
+  <div id="chatWindow" class="flex-1 bg-white rounded shadow p-4 overflow-y-auto mb-4">
+    <p class="text-gray-400 text-center">💡 No user selected</p>
+  </div>
 
-        <div id="chatWindow" class="flex-1 bg-white rounded shadow p-4 overflow-y-auto mb-4">
-          <p class="text-gray-400 text-center">💡 No user selected</p>
-        </div>
+  <!-- Message Input -->
+  <div class="flex">
+    <input
+      id="msgInput"
+      class="flex-1 border px-4 py-2 rounded-l"
+      placeholder="Type message..."
+    />
+    <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 py-2 rounded-r">
+      Send
+    </button>
+  </div>
+</main>
 
-        <div class="flex">
-          <input id="msgInput" class="flex-1 border px-4 py-2 rounded-l" placeholder="Type message..." />
-          <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 py-2 rounded-r">Send</button>
-        </div>
-      </main>
     </div>
   </body>
 </html>
