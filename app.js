@@ -326,7 +326,6 @@ function renderMessagesChart(messages) {
   });
 }
 
-let usersChart = null;
 function renderMessagesChart(messages) {
   const dayLabels = [];
   const dayCounts = [];
