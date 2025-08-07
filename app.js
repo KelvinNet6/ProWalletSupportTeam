@@ -23,11 +23,19 @@ let currentUserId = null;
 // Auth check
 const checkAuth = async () => {
   const { data } = await supabase.auth.getSession();
-  if (data.session) {
+ if (data.session) {
+  const user = data.session.user;
+  const allowedAdminEmail = "kelvin.net6gmail.com"; // change this to your admin email
+
+  if (user.email === allowedAdminEmail) {
     showDashboard();
   } else {
+    alert("Access denied: not an authorized admin.");
+    await supabase.auth.signOut();
     showLogin();
   }
+}
+
 };
 
 loginBtn.addEventListener('click', async () => {
@@ -38,10 +46,20 @@ loginBtn.addEventListener('click', async () => {
   if (error) {
     loginError.textContent = 'Invalid credentials';
     loginError.classList.remove('hidden');
-  } else {
+  } } else {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const user = sessionData.session.user;
+  const allowedAdminEmail = "admin@prowallet.com"; // update this
+
+  if (user.email === allowedAdminEmail) {
     loginError.classList.add('hidden');
     showDashboard();
+  } else {
+    alert("Access denied: not an authorized admin.");
+    await supabase.auth.signOut();
+    showLogin();
   }
+}
 });
 
 logoutBtn.addEventListener('click', async () => {
