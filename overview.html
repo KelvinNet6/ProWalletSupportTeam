@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ProWallet Support Admin Overview</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="overview.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6 font-sans">
+
+  <h1 class="text-3xl font-bold mb-6 text-gray-900">📊 Support Dashboard Overview</h1>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+
+    <div class="bg-white p-6 rounded-lg shadow flex flex-col items-center">
+      <div class="text-4xl mb-2 text-blue-600">📨</div>
+      <div class="text-lg font-semibold">Total Messages</div>
+      <div id="totalMessages" class="text-3xl font-bold mt-2 text-gray-800">0</div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow flex flex-col items-center">
+      <div class="text-4xl mb-2 text-green-600">👥</div>
+      <div class="text-lg font-semibold">Active Users</div>
+      <div id="activeUsers" class="text-3xl font-bold mt-2 text-gray-800">0</div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow flex flex-col items-center">
+      <div class="text-4xl mb-2 text-yellow-500">⏱️</div>
+      <div class="text-lg font-semibold">Avg Response Time</div>
+      <div id="avgResponseTime" class="text-3xl font-bold mt-2 text-gray-800">--</div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow flex flex-col items-center">
+      <div class="text-4xl mb-2 text-red-500">📥</div>
+      <div class="text-lg font-semibold">Open Conversations</div>
+      <div id="openConversations" class="text-3xl font-bold mt-2 text-gray-800">0</div>
+    </div>
+
+  </div>
+
+  <!-- Charts -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+    <div class="bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold mb-4">Messages per Day (Last 14 days)</h2>
+      <canvas id="messagesChart" height="200"></canvas>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-semibold mb-4">Top Users by Message Count</h2>
+      <canvas id="usersChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- Recent Conversations -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-xl font-semibold mb-4">Recent Conversations</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full table-auto border-collapse border border-gray-300">
+        <thead>
+          <tr class="bg-gray-50">
+            <th class="border border-gray-300 px-4 py-2 text-left">User ID</th>
+            <th class="border border-gray-300 px-4 py-2 text-left">Last Message</th>
+            <th class="border border-gray-300 px-4 py-2 text-left">Time</th>
+            <th class="border border-gray-300 px-4 py-2 text-left">Status</th>
+          </tr>
+        </thead>
+        <tbody id="recentConversationsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</body>
+</html>
