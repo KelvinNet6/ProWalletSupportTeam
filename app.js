@@ -335,6 +335,43 @@ function renderMessagesChart(messages) {
   });
 }
 
+function renderUsersChart(messagesByUser) {
+  const userIds = Object.keys(messagesByUser).slice(0, 10);
+  const userCounts = userIds.map(uid => messagesByUser[uid].length);
+
+  const ctx = document.getElementById('usersChart').getContext('2d');
+
+  if (typeof usersChart !== 'undefined' && usersChart) {
+    usersChart.destroy();
+  }
+
+  usersChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: userIds.map(id => id.slice(0, 6) + '...'),
+      datasets: [{
+        label: 'Messages',
+        data: userCounts,
+        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+        borderColor: 'rgba(5, 150, 105, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          precision: 0
+        }
+      }
+    }
+  });
+}
+
 
 // ===== NAV TABS =====
 tabOverview.addEventListener('click', () => {
