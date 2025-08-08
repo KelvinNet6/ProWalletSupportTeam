@@ -2,7 +2,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const supabaseUrl = 'https://nsbuezwakcyxgvrwiela.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zYnVlendha2N5eGd2cndpZWxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTcwMjUsImV4cCI6MjA3MDEzMzAyNX0.L33UWCIRi5CS1cenMfw6EYOzrGg2k_OK8wVukEE4WLI'; // Replace with your anon key
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
 // Elements
 const loginView = document.getElementById('loginView');
@@ -41,14 +41,14 @@ const ALLOWED_ADMIN_EMAIL = 'kelvin.net6@gmail.com'; // Your allowed admin email
 
 // ===== AUTH =====
 async function checkAuth() {
-  const { data } = await supabase.auth.getSession();
+  const { data } = await supabaseClient.auth.getSession();
   if (data.session) {
     const user = data.session.user;
     if (user.email === ALLOWED_ADMIN_EMAIL) {
       showDashboard();
     } else {
       alert('Access denied: not an authorized admin.');
-      await supabase.auth.signOut();
+      await supabaseClient.auth.signOut();
       showLogin();
     }
   } else {
@@ -65,7 +65,7 @@ loginBtn.addEventListener('click', async () => {
     return;
   }
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) {
     loginError.textContent = 'Invalid credentials';
     loginError.classList.remove('hidden');
@@ -76,7 +76,7 @@ loginBtn.addEventListener('click', async () => {
 });
 
 logoutBtn.addEventListener('click', async () => {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   showLogin();
 });
 
@@ -97,7 +97,7 @@ function showDashboard() {
 // ===== USER LIST & AVATARS =====
 async function loadUsers() {
   // Get distinct user_ids from messages where sender != 'admin'
-  const { data: messages, error } = await supabase
+  const { data: messages, error } = await supabaseClient
     .from('support_messages')
     .select('user_id')
     .neq('sender', 'admin');
@@ -112,7 +112,7 @@ async function loadUsers() {
   userList.innerHTML = '';
   for (const userId of uniqueUserIds) {
     // Try get avatar public URL from storage bucket 'avatars'
-    const { data: avatarData } = supabase.storage.from('avatars').getPublicUrl(`${userId}.jpg`);
+    const { data: avatarData } = supabaseClient.storage.from('avatars').getPublicUrl(`${userId}.jpg`);
     const avatarUrl = avatarData?.publicUrl || 'https://via.placeholder.com/40';
 
     const div = document.createElement('div');
@@ -138,10 +138,10 @@ async function loadChat(userId, avatarUrl) {
   await displayMessages();
 
   if (chatSubscription) {
-    supabase.removeChannel(chatSubscription);
+    supabaseClient.removeChannel(chatSubscription);
   }
 
-  chatSubscription = supabase.channel(`chat:${userId}`)
+  chatSubscription = supabaseClient.channel(`chat:${userId}`)
     .on('postgres_changes', {
       event: 'INSERT',
       schema: 'public',
@@ -156,7 +156,7 @@ async function loadChat(userId, avatarUrl) {
 async function displayMessages() {
   if (!currentUserId) return;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('support_messages')
     .select('*')
     .eq('user_id', currentUserId)
@@ -191,7 +191,7 @@ sendBtn.addEventListener('click', async () => {
   const message = msgInput.value.trim();
   if (!message || !currentUserId) return;
 
-  const { error } = await supabase.from('support_messages').insert([
+  const { error } = await supabaseClient.from('support_messages').insert([
     {
       user_id: currentUserId,
       message,
@@ -210,7 +210,7 @@ sendBtn.addEventListener('click', async () => {
 
 // ===== DASHBOARD (OVERVIEW) =====
 async function loadDashboard() {
-  const { data: messages, error } = await supabase.from('support_messages').select('*');
+  const { data: messages, error } = await supabaseClient.from('support_messages').select('*');
 
   if (error) {
     console.error('Failed to load dashboard data:', error);
